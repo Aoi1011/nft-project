@@ -1,20 +1,15 @@
 use std::thread;
 
 fn main() {
-    let numbers = vec![1, 2, 3];
+    let numbers = Vec::from_iter(0..=1000);
 
-    thread::spawn(move || {
-        for n in numbers {
-            println!("{n}");
-        }
-    })
-    .join()
-    .unwrap();
-}
+    let t = thread::spawn(move || {
+        let len = numbers.len();
+        let sum = numbers.into_iter().sum::<usize>();
+        sum / len
+    });
 
-fn f() {
-    println!("Hello from another thread!");
+    let average = t.join().unwrap();
 
-    let id = thread::current().id();
-    println!("This is my thread id: {id:?}");
+    println!("average: {average}");
 }
