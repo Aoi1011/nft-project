@@ -2,20 +2,8 @@ use std::sync::Arc;
 use std::{rc::Rc, thread};
 
 fn main() {
-    let numbers = vec![1, 2, 3];
+    let a = Rc::new([1, 2, 3]);
+    let b = a.clone();
 
-    thread::spawn(move || {
-        for n in numbers {
-            println!("{n}");
-        }
-    })
-    .join()
-    .unwrap();
+    assert_eq!(a.as_ptr(), b.as_ptr());
 }
-
-// fn f() {
-//     println!("Hello from another thread!");
-
-//     let id = thread::current().id();
-//     println!("This is my thread id: {id:?}");
-// }
