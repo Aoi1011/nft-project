@@ -1,10 +1,15 @@
 use std::thread;
 
 fn main() {
-    thread::spawn(f);
-    thread::spawn(f);
+    let numbers = vec![1, 2, 3];
 
-    println!("Hello from the main thread.")
+    thread::spawn(move || {
+        for n in numbers {
+            println!("{n}");
+        }
+    })
+    .join()
+    .unwrap();
 }
 
 fn f() {
