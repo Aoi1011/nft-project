@@ -16,3 +16,16 @@ All primitive types such as i32, bool, and str are both Send and Sync
 ## Locking: Mutexes and RwLocks
 mutex("mutual exclusion")
 a mutex has only two states: locked and unlocked
+
+### Lock Poisoning
+The unwrap() calls in the examples above relate to lock poisoning.
+Calling lock() on a poisoned mutex still locks the mutex. 
+
+### Reader-Writer Lock
+A mutex is only concerned with exclusive access.
+The MutexGuard will provide us an exclusive reference (&mut T) to the protected data
+
+## Waiting: Parking and Condition Variables
+
+### Thread Parking
+One way to wait for a notification from another thread is called thread parking. 
