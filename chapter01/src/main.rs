@@ -51,5 +51,6 @@ fn ownership() {
 
     let a = [123, 345, 789];
     let b = unsafe {a.get_unchecked(index)};
+    let c = a[index];
     println!("{}", b);
 }
