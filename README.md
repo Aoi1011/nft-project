@@ -12,3 +12,4 @@ In the context of multi-threading, an operation is atomic if it cannot, from the
 
 ## References
 - [CPU atomics and orderings explained](https://fy.blackhats.net.au/blog/html/2019/07/16/cpu_atomics_and_orderings_explained.html)
+- [Rust Atomics and Locks](https://marabos.nl/atomics/basics.html)
