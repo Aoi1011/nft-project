@@ -1,13 +1,13 @@
-use core::num;
 use std::cell::Cell;
 use std::ops::Add;
 use std::sync::Arc;
 use std::{rc::Rc, thread};
 
 fn main() {
-    let numbers = Cell::new(vec![1]);
-    f(&numbers);
-    println!("{:?}", numbers.take());
+    let numbers = Cell::new(1);
+    f1(&numbers, &numbers);
+
+    println!("{:?}", numbers.get());
 }
 
 fn f(v: &Cell<Vec<i32>>) {
