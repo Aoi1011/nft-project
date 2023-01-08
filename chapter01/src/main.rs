@@ -1,56 +1,31 @@
 use core::num;
+use std::cell::Cell;
 use std::ops::Add;
 use std::sync::Arc;
 use std::{rc::Rc, thread};
 
 fn main() {
-    // let a = Arc::new([1, 2, 3]);
-    // let b = a.clone();
-
-    // thread::spawn(move || {
-    //     dbg!(a);
-    // });
-    // thread::spawn(move || dbg!(b));
-    ownership();
+    let numbers = Cell::new(vec![1]);
+    f(&numbers);
+    println!("{:?}", numbers.take());
 }
 
-fn f(a: &i32, b: &mut i32, c: i32) {
-    // let hello = String::from("Hello");
-    // let hello2 = hello;
-    // let before = *a;
-    // *b += 1;
-    // let after = a;
-    // let some = c;
-    // let any = c;
-
-    // println!("{} {}", hello, c);
-    // if before != after {
-    //     x
-    // }
+fn f(v: &Cell<Vec<i32>>) {
+    let mut v2 = v.take();
+    v2.push(1);
+    v.set(v2);
 }
 
-fn ownership() {
-    let mut s = String::from("hello");
-    s.push_str(", world");
-
-    println!("{s}");
-
-    let numbers = vec![1, 2, 3];
-    
-    for num in numbers {
-        println!("{}", num);
+fn f1(a: &Cell<i32>, b: &Cell<i32>) {
+    let before = a.get();
+    b.set(b.get() + 1);
+    let after = a.get();
+    if before != after {
+        x();
     }
-
-    let index: usize = 0;
-
-    match index {
-        0 => println!("0"),
-        1 => println!("1"),
-        _ => println!("other")
-    }
-
-    let a = [123, 345, 789];
-    let b = unsafe {a.get_unchecked(index)};
-    let c = a[index];
-    println!("{}", b);
 }
+
+fn x() {
+    println!("Function x");
+}
+
