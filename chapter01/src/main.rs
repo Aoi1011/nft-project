@@ -2,9 +2,15 @@ use std::sync::Arc;
 use std::{rc::Rc, thread};
 
 fn main() {
-    let a = Arc::new([1, 2, 3]);
-    let b = a.clone();
+    let numbers: Vec<usize> = vec![];
 
-    thread::spawn(move || dbg!(a));
-    thread::spawn(move || dbg!(b));
+    let t = thread::spawn(|| {
+        let len = numbers.len();
+        let sum = numbers.into_iter().sum::<usize>();
+        sum / len
+    });
+
+    let average = t.join().unwrap();
+
+    println!("average: {average}");
 }
