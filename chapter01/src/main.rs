@@ -1,31 +1,21 @@
-use std::cell::Cell;
-use std::ops::Add;
-use std::sync::Arc;
-use std::{rc::Rc, thread};
+use std::{cell::{Cell, RefCell}, marker::PhantomData, rc::Rc, thread, sync::Arc};
+
+// 
+struct X {
+    handle: i32,
+    _not_sync: PhantomData<Cell<()>>
+}
+
+unsafe impl Send for X{}
+unsafe impl Sync for X{}
 
 fn main() {
-    let numbers = Cell::new(1);
-    f1(&numbers, &numbers);
-
-    println!("{:?}", numbers.get());
+    let a = Arc::new(123);
+    thread::spawn(move || {
+        dbg!(a);
+    });
 }
 
-fn f(v: &Cell<Vec<i32>>) {
-    let mut v2 = v.take();
-    v2.push(1);
-    v.set(v2);
+fn f(v: &RefCell<Vec<i32>>) {
+    v.borrow_mut().push(1);
 }
-
-fn f1(a: &Cell<i32>, b: &Cell<i32>) {
-    let before = a.get();
-    b.set(b.get() + 1);
-    let after = a.get();
-    if before != after {
-        x();
-    }
-}
-
-fn x() {
-    println!("Function x");
-}
-
