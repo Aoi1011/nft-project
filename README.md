@@ -11,5 +11,10 @@ In the context of multi-threading, an operation is atomic if it cannot, from the
 
 
 ## References
-- [CPU atomics and orderings explained](https://fy.blackhats.net.au/blog/html/2019/07/16/cpu_atomics_and_orderings_explained.html)
 - [Rust Atomics and Locks](https://marabos.nl/atomics/basics.html)
+- [Source](https://github.com/m-ou-se/rust-atomics-and-locks)
+- [Blog](https://blog.m-ou.se/rust-standard/)
+- [CPU atomics and orderings explained](https://fy.blackhats.net.au/blog/html/2019/07/16/cpu_atomics_and_orderings_explained.html)
+- [Explaining Atomics in Rust](https://cfsamsonbooks.gitbook.io/explaining-atomics-in-rust/)
+- [Atomic vs. Non-Atomic Operations](https://preshing.com/20130618/atomic-vs-non-atomic-operations/)
+- [What Every Programmer Should Know About Memory](https://people.freebsd.org/~lstewart/articles/cpumemory.pdf)
