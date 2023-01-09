@@ -1,5 +1,7 @@
+use std::io::Read;
 use std::sync::{Mutex, Arc};
 use std::sync::atomic::Ordering::Relaxed;
+use std::time::Instant;
 use std::{
     cmp::Ordering,
     sync::atomic::{AtomicBool, AtomicI32, AtomicU64, AtomicUsize},
@@ -8,14 +10,45 @@ use std::{
 };
 
 fn main() {
-    let a = AtomicI32::new(100);
-    // fetch_add operation incremented a from 100 to 123, but returned to us the old value of 100
-    // Any next operation will see the value of 123
-    let b = a.fetch_add(23, Relaxed);
-    let c = a.load(Relaxed);
+    statistics();
+}
 
-    assert_eq!(b, 100);
-    assert_eq!(c, 123);
+pub fn statistics() {
+    let num_done = &AtomicUsize::new(0);
+    let total_time = &AtomicU64::new(0);
+    let max_time = &AtomicU64::new(0);
+
+    thread::scope(|s| {
+        // Four background threads to process all 100 items, 25 each
+        for t in 0..4 {
+            s.spawn(move || {
+                for i in 0..25 {
+                    let start = Instant::now();
+                    process_item(t * 25 + i);
+                    let time_taken = start.elapsed().as_micros() as u64;
+                    num_done.fetch_add(1, Relaxed);
+                    total_time.fetch_add(time_taken, Relaxed);
+                    max_time.fetch_max(time_taken, Relaxed);
+                }
+            });
+        }
+
+        // The main thread shows status updates, every seconds
+        loop {
+            let total_time = Duration::from_micros(total_time.load(Relaxed));
+            let max_time = Duration::from_micros(max_time.load(Relaxed));
+            let n = num_done.load(Relaxed);
+            if n == 100 {break;}
+            if n == 0 {
+                println!("Working.. nothing done yet.");
+            } else {
+                println!("Working.. {n}/100 done, {:?} average, {:?} peak", total_time/n as u32, max_time);
+            }
+            thread::sleep(Duration::from_secs(1));
+        }
+    });
+
+    println!("Done!")
 }
 
 pub fn get_x() -> u64 {
@@ -62,16 +95,19 @@ pub fn synchronization() {
 }
 
 pub fn progress_reporting() {
-    let num_done = AtomicUsize::new(0);
+    let num_done = &AtomicUsize::new(0);
 
     thread::scope(|s| {
         // A background thread to process all 100 items.
-        s.spawn(|| {
-            for i in 0..100 {
-                process_item(i);
-                num_done.store(i + 1, Relaxed);
-            }
-        });
+        for t in 0..4 {
+            s.spawn(move || {
+                for i in 0..25 {
+                    process_item(t * 25 + i);
+                    num_done.fetch_add(1, Relaxed);
+                }
+            });
+        }
+        
 
         // The main thread shows status updates, every second
         loop {
@@ -85,8 +121,8 @@ pub fn progress_reporting() {
     println!("Done!");
 }
 
-fn process_item(i: usize) {
-    print!("")
+fn process_item(_i: usize) {
+    print!("");
 }
 
 pub fn stop_flag() {
