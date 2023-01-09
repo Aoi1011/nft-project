@@ -1,12 +1,21 @@
+use std::sync::{Mutex, Arc};
+use std::sync::atomic::Ordering::Relaxed;
 use std::{
     cmp::Ordering,
-    sync::atomic::{AtomicBool, AtomicI32, AtomicUsize, AtomicU64},
-    thread, time::Duration,
+    sync::atomic::{AtomicBool, AtomicI32, AtomicU64, AtomicUsize},
+    thread,
+    time::Duration,
 };
-use std::sync::atomic::Ordering::Relaxed;
 
 fn main() {
-    stop_flag();
+    let a = AtomicI32::new(100);
+    // fetch_add operation incremented a from 100 to 123, but returned to us the old value of 100
+    // Any next operation will see the value of 123
+    let b = a.fetch_add(23, Relaxed);
+    let c = a.load(Relaxed);
+
+    assert_eq!(b, 100);
+    assert_eq!(c, 123);
 }
 
 pub fn get_x() -> u64 {
@@ -28,53 +37,57 @@ pub fn synchronization() {
 
     let main_thread = thread::current();
 
-    thread::scope(
-        |s| {
-            // A background thread to process all 100 items
-            s.spawn(|| {
-                for i in 0..100 {
-                    process_item(i);
-                    num_done.store(i + 1, Relaxed);
-                    main_thread.unpark();
-                }
-            });
-
-            // The main thread shows status updates
-            loop {
-                let n = num_done.load(Relaxed);
-                if n == 100 {break;}
-                println!("Working.. {n}/100 done");
-                thread::park_timeout(Duration::from_secs(1));
+    thread::scope(|s| {
+        // A background thread to process all 100 items
+        s.spawn(|| {
+            for i in 0..100 {
+                process_item(i); // Assuming this takes some time.
+                num_done.store(i + 1, Relaxed);
+                main_thread.unpark(); // Wake up the main thread.
             }
+        });
+
+        // The main thread shows status updates
+        loop {
+            let n = num_done.load(Relaxed);
+            if n == 100 {
+                break;
+            }
+            println!("Working.. {n}/100 done");
+            thread::park_timeout(Duration::from_secs(1));
         }
-    );
+    });
 
     println!("Done!");
 }
 
 pub fn progress_reporting() {
-     let num_done = AtomicUsize::new(0);
+    let num_done = AtomicUsize::new(0);
 
-     thread::scope(|s| {
-        // A background thread to process all 100 items
+    thread::scope(|s| {
+        // A background thread to process all 100 items.
         s.spawn(|| {
             for i in 0..100 {
                 process_item(i);
-                num_done.store(i + 1, Relaxed)
+                num_done.store(i + 1, Relaxed);
             }
         });
 
+        // The main thread shows status updates, every second
         loop {
             let n = num_done.load(Relaxed);
             if n == 100 {break;}
             println!("Working.. {n}/100 done");
             thread::sleep(Duration::from_secs(1));
         }
-     });
+    });
 
-     println!("Done!");
+    println!("Done!");
 }
 
+fn process_item(i: usize) {
+    print!("")
+}
 
 pub fn stop_flag() {
     static STOP: AtomicBool = AtomicBool::new(false);
@@ -102,9 +115,7 @@ pub fn stop_flag() {
     background_thread.join().unwrap();
 }
 
-fn process_item(i: usize) {
-    println!("")
-}
+
 
 fn some_work() {
     print!("");
