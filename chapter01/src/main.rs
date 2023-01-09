@@ -10,32 +10,17 @@ use std::{
 };
 
 fn main() {
-    let queue = Mutex::new(VecDeque::<i32>::new());
-    let not_empty = Condvar::new();
+    let numbers = vec![1, 2, 3];
+    let mut num = 1;
 
-    thread::scope(|s| {
-        // Consuming thread
-        s.spawn(|| {
-            loop {
-                let mut q = queue.lock().unwrap();
-                let item = loop {
-                    if let Some(item) = q.pop_front() {
-                        break item;
-                    } else {
-                        q = not_empty.wait(q).unwrap();
-                    }
-                };
-                drop(q);
-                dbg!(item);
-            }
-        });
-
-        // Producing thread
-
-        for i in 0.. {
-            queue.lock().unwrap().push_back(i);
-            not_empty.notify_one();
-            thread::sleep(Duration::from_secs(1));
+    thread::spawn(move || {
+        for n in numbers {
+            println!("{n}");
         }
-    });
+        num = 2;
+        println!("{}", num);
+    }).join().unwrap();
+
+    println!("{}", num);
+
 }

@@ -29,3 +29,6 @@ The MutexGuard will provide us an exclusive reference (&mut T) to the protected 
 
 ### Thread Parking
 One way to wait for a notification from another thread is called thread parking. 
+
+### Condition Variables
+Condition variables are a more commonly used option for waiting for something to happen to data protected by a mutex. 
