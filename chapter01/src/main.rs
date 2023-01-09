@@ -3,7 +3,7 @@ use std::{
     collections::VecDeque,
     marker::PhantomData,
     rc::Rc,
-    sync::{Arc, Mutex, Condvar},
+    sync::{Arc, Condvar, Mutex},
     thread,
     time::Duration,
     vec,
@@ -19,8 +19,9 @@ fn main() {
         }
         num = 2;
         println!("{}", num);
-    }).join().unwrap();
+    })
+    .join()
+    .unwrap();
 
     println!("{}", num);
-
 }
