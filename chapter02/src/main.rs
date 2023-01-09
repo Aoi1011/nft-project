@@ -1,4 +1,5 @@
 use std::io::Read;
+use std::sync::atomic::AtomicU32;
 use std::sync::{Mutex, Arc};
 use std::sync::atomic::Ordering::Relaxed;
 use std::time::Instant;
@@ -11,6 +12,15 @@ use std::{
 
 fn main() {
     statistics();
+}
+
+pub fn id_allocation() {
+
+}
+
+pub fn allocate_new_id() -> u32 {
+    static NEXT_ID: AtomicU32 = AtomicU32::new(0);
+    NEXT_ID.fetch_add(1, Relaxed)
 }
 
 pub fn statistics() {
