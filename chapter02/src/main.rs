@@ -1,15 +1,58 @@
 use std::{
     cmp::Ordering,
-    sync::atomic::{AtomicBool, AtomicI32, AtomicUsize},
+    sync::atomic::{AtomicBool, AtomicI32, AtomicUsize, AtomicU64},
     thread, time::Duration,
 };
 use std::sync::atomic::Ordering::Relaxed;
 
 fn main() {
-    progress_reporting();
+    stop_flag();
 }
 
-fn progress_reporting() {
+pub fn get_x() -> u64 {
+    static X: AtomicU64 = AtomicU64::new(0);
+    let mut x = X.load(Relaxed);
+    if x == 0 {
+        x = calculate_x();
+        X.store(x, Relaxed);
+    }
+    x
+}
+
+pub fn calculate_x() -> u64 {
+    1
+}
+
+pub fn synchronization() {
+    let num_done = AtomicUsize::new(0);
+
+    let main_thread = thread::current();
+
+    thread::scope(
+        |s| {
+            // A background thread to process all 100 items
+            s.spawn(|| {
+                for i in 0..100 {
+                    process_item(i);
+                    num_done.store(i + 1, Relaxed);
+                    main_thread.unpark();
+                }
+            });
+
+            // The main thread shows status updates
+            loop {
+                let n = num_done.load(Relaxed);
+                if n == 100 {break;}
+                println!("Working.. {n}/100 done");
+                thread::park_timeout(Duration::from_secs(1));
+            }
+        }
+    );
+
+    println!("Done!");
+}
+
+pub fn progress_reporting() {
      let num_done = AtomicUsize::new(0);
 
      thread::scope(|s| {
@@ -33,7 +76,7 @@ fn progress_reporting() {
 }
 
 
-fn stop_flag() {
+pub fn stop_flag() {
     static STOP: AtomicBool = AtomicBool::new(false);
 
     // Spawn a thread to do the work
@@ -64,5 +107,5 @@ fn process_item(i: usize) {
 }
 
 fn some_work() {
-    println!("Hello");
+    print!("");
 }
