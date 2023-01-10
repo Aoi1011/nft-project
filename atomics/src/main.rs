@@ -1,6 +1,6 @@
 use std::{
     cell::UnsafeCell,
-    sync::atomic::{AtomicBool, Ordering},
+    sync::atomic::{AtomicBool, AtomicUsize, Ordering},
     thread,
 };
 
@@ -25,7 +25,7 @@ impl<T> Mutex<T> {
     pub fn with_lock<R>(&self, f: impl FnOnce(&mut T) -> R) -> R {
         while self
             .locked
-            .compare_exchange_weak(UNLOCKED, LOCKED, Ordering::Relaxed, Ordering::Relaxed)
+            .compare_exchange_weak(UNLOCKED, LOCKED, Ordering::Acquire, Ordering::Relaxed)
             .is_err()
         {
             // MESI protocol: stay in S when locked
@@ -36,12 +36,13 @@ impl<T> Mutex<T> {
         }
         // Safety: we hold the lock, therefore we can create mutable reference.
         let ret = f(unsafe { &mut *self.v.get() });
-        self.locked.store(UNLOCKED, Ordering::Relaxed);
+        self.locked.store(UNLOCKED, Ordering::Release);
         ret
     }
 }
 
-fn main() {
+#[test]
+fn mutex_test() {
     let l: &'static _ = Box::leak(Box::new(Mutex::new(0)));
 
     let handles: Vec<_> = (0..100)
@@ -61,4 +62,56 @@ fn main() {
     }
 
     assert_eq!(l.with_lock(|v| *v), 100 * 1000);
+}
+
+#[test]
+fn too_relaxed() {
+    let x: &'static _ = Box::leak(Box::new(AtomicUsize::new(0)));
+    let y: &'static _ = Box::leak(Box::new(AtomicUsize::new(0)));
+
+    let t1 = thread::spawn(move || {
+        let r1 = y.load(Ordering::Relaxed);
+        x.store(r1, Ordering::Relaxed);
+        r1
+    });
+
+    let t2 = thread::spawn(move || {
+        let r2 = x.load(Ordering::Relaxed);
+        y.store(42, Ordering::Relaxed);
+        r2
+    });
+
+    let r1 = t1.join().unwrap();
+    let r2 = t2.join().unwrap();
+    // r1 == r2 == 42
+}
+
+fn main() {
+    let x: &'static _ = Box::leak(Box::new(AtomicBool::new(false)));
+    let y: &'static _ = Box::leak(Box::new(AtomicBool::new(false)));
+    let z: &'static _ = Box::leak(Box::new(AtomicUsize::new(0)));
+
+    thread::spawn(move || {
+        x.store(true, Ordering::Relaxed);
+    });
+    thread::spawn(move || {
+        y.store(true, Ordering::Relaxed);
+    });
+
+    let t1 = thread::spawn(move || {
+        while !x.load(Ordering::Acquire) {}
+        if y.load(Ordering::Acquire) {
+            z.fetch_add(1, Ordering::Relaxed);
+        }
+    });
+
+    let t2 = thread::spawn(move || {
+        while !y.load(Ordering::Acquire) {}
+        if x.load(Ordering::Acquire) {
+            z.fetch_add(1, Ordering::Relaxed);
+        }
+    });
+
+    t1.join().unwrap();
+    t2.join().unwrap();
 }
