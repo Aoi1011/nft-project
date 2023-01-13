@@ -19,3 +19,4 @@ In the context of multi-threading, an operation is atomic if it cannot, from the
 - [Atomic vs. Non-Atomic Operations](https://preshing.com/20130618/atomic-vs-non-atomic-operations/)
 - [What Every Programmer Should Know About Memory](https://people.freebsd.org/~lstewart/articles/cpumemory.pdf)
 - [Spinlocks Considered Harmful](https://matklad.github.io/2020/01/02/spinlocks-considered-harmful.html)
+- [memory order](https://en.cppreference.com/w/cpp/atomic/memory_order)
