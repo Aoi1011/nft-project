@@ -20,3 +20,6 @@ In the context of multi-threading, an operation is atomic if it cannot, from the
 - [What Every Programmer Should Know About Memory](https://people.freebsd.org/~lstewart/articles/cpumemory.pdf)
 - [Spinlocks Considered Harmful](https://matklad.github.io/2020/01/02/spinlocks-considered-harmful.html)
 - [memory order](https://en.cppreference.com/w/cpp/atomic/memory_order)
+
+## Blog
+- [understanding-memory-ordering](https://www.internalpointers.com/post/understanding-memory-ordering)
