@@ -1,3 +1,5 @@
+mod spin_lock;
+
 pub fn add(left: usize, right: usize) -> usize {
     left + right
 }
