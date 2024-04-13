@@ -1,7 +1,6 @@
 use std::sync::atomic::{AtomicPtr, Ordering};
 
-#[derive(Debug)]
-struct Data([u8; 100]);
+struct Data(Vec<u8>);
 
 fn get_data() -> &'static Data {
     static PTR: AtomicPtr<Data> = AtomicPtr::new(std::ptr::null_mut());
@@ -25,12 +24,12 @@ fn get_data() -> &'static Data {
 }
 
 fn generate_data() -> Data {
-    Data([123; 100])
+    Data(vec![123; 100])
 }
 
 fn main() {
     let data = get_data();
     let data1 = get_data();
-    println!("{:?}", *data);
-    println!("{:?}", *data1);
+
+    assert_eq!(data.0.len(), data1.0.len());
 }
