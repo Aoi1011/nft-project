@@ -9,6 +9,9 @@ In the context of multi-threading, an operation is atomic if it cannot, from the
 - Need the Arc type when attempting to share data across threads is to ensure that the lifetime of the type that is being shared, lives as long as the longest lasting thread.
 - An atomic counter is a type that lets you mutate and increment its value in a thread safe way
 
+## Tools
+- https://godbolt.org/
+
 
 ## References
 - [Rust Atomics and Locks](https://marabos.nl/atomics/basics.html)
@@ -23,3 +26,4 @@ In the context of multi-threading, an operation is atomic if it cannot, from the
 
 ## Blog
 - [understanding-memory-ordering](https://www.internalpointers.com/post/understanding-memory-ordering)
+- [interacting-with-assembly-in-rust](https://tinkering.xyz/interacting-with-assembly-in-rust/)

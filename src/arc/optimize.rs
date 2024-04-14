@@ -1,7 +1,6 @@
-mod optimize;
-
 use std::{
     cell::UnsafeCell,
+    mem::ManuallyDrop,
     ops::Deref,
     ptr::NonNull,
     sync::atomic::{fence, AtomicUsize, Ordering},
@@ -15,45 +14,72 @@ struct ArcData<T> {
     alloc_ref_count: AtomicUsize,
 
     /// The data. `None` if there's only weak pointers left
-    data: UnsafeCell<Option<T>>,
+    data: UnsafeCell<ManuallyDrop<T>>,
 }
 
+/// `Arc<T>` provides shared ownership of a reference-counted allocation
 pub struct Arc<T> {
-    weak: Weak<T>,
+    ptr: NonNull<ArcData<T>>,
 }
 
 impl<T> Arc<T> {
     pub fn new(data: T) -> Arc<T> {
         Arc {
-            weak: Weak {
-                ptr: NonNull::from(Box::leak(Box::new(ArcData {
-                    data_ref_count: AtomicUsize::new(1),
-                    alloc_ref_count: AtomicUsize::new(1),
-                    data: UnsafeCell::new(Some(data)),
-                }))),
-            },
+            ptr: NonNull::from(Box::leak(Box::new(ArcData {
+                data_ref_count: AtomicUsize::new(1),
+                alloc_ref_count: AtomicUsize::new(1),
+                data: UnsafeCell::new(ManuallyDrop::new(data)),
+            }))),
         }
     }
 
     fn data(&self) -> &ArcData<T> {
-        unsafe { self.weak.ptr.as_ref() }
+        unsafe { self.ptr.as_ref() }
     }
 
     pub fn get_mut(arc: &mut Self) -> Option<&mut T> {
-        if arc.data().alloc_ref_count.load(Ordering::Relaxed) == 1 {
-            fence(Ordering::Acquire);
-            let arcdata = unsafe { arc.weak.ptr.as_mut() };
-            let option = arcdata.data.get_mut();
-            let data = option.as_mut().unwrap();
-
-            Some(data)
-        } else {
-            None
+        if arc
+            .data()
+            .alloc_ref_count
+            .compare_exchange(1, usize::MAX, Ordering::Acquire, Ordering::Relaxed)
+            .is_err()
+        {
+            return None;
         }
+
+        let is_unique = arc.data().data_ref_count.load(Ordering::Relaxed) == 1;
+
+        arc.data().alloc_ref_count.store(1, Ordering::Release);
+        if !is_unique {
+            return None;
+        }
+
+        fence(Ordering::Acquire);
+        unsafe { Some(&mut *arc.data().data.get()) }
     }
 
     pub fn downgrade(arc: &Self) -> Weak<T> {
-        arc.weak.clone()
+        let mut n = arc.data().alloc_ref_count.load(Ordering::Relaxed);
+        loop {
+            if n == usize::MAX {
+                std::hint::spin_loop();
+                n = arc.data().alloc_ref_count.load(Ordering::Relaxed);
+                continue;
+            }
+            assert!(n <= usize::MAX / 2);
+
+            if let Err(e) = arc.data().alloc_ref_count.compare_exchange(
+                n,
+                n + 1,
+                Ordering::Acquire,
+                Ordering::Relaxed,
+            ) {
+                n = e;
+                continue;
+            }
+
+            return Weak { ptr: arc.ptr };
+        }
     }
 }
 
@@ -61,19 +87,31 @@ impl<T> Deref for Arc<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        let ptr = self.weak.data().data.get();
-        unsafe { (*ptr).as_ref().unwrap() }
+        unsafe { &*self.data().data.get() }
     }
 }
 
 impl<T> Clone for Arc<T> {
     fn clone(&self) -> Self {
-        let weak = self.weak.clone();
-        if weak.data().data_ref_count.fetch_add(1, Ordering::Relaxed) == usize::MAX / 2 {
+        if self.data().data_ref_count.fetch_add(1, Ordering::Relaxed) == usize::MAX / 2 {
             std::process::abort();
         };
 
-        Arc { weak }
+        Arc { ptr: self.ptr }
+    }
+}
+
+impl<T> Drop for Arc<T> {
+    fn drop(&mut self) {
+        if self.data().data_ref_count.fetch_sub(1, Ordering::Release) == 1 {
+            fence(Ordering::Acquire);
+
+            unsafe {
+                ManuallyDrop::drop(&mut *self.data().data.get());
+            }
+
+            drop(Weak { ptr: self.ptr });
+        }
     }
 }
 
@@ -95,9 +133,7 @@ impl<T> Weak<T> {
             if n == 0 {
                 return None;
             }
-
             assert!(n <= usize::MAX / 2);
-
             if let Err(e) = self.data().data_ref_count.compare_exchange(
                 n,
                 n + 1,
@@ -107,7 +143,7 @@ impl<T> Weak<T> {
                 n = e;
                 continue;
             }
-            return Some(Arc { weak: self.clone() });
+            return Some(Arc { ptr: self.ptr });
         }
     }
 }
@@ -127,19 +163,12 @@ impl<T> Clone for Weak<T> {
     }
 }
 
-impl<T> Drop for Arc<T> {
+impl<T> Drop for Weak<T> {
     fn drop(&mut self) {
-        if self
-            .weak
-            .data()
-            .data_ref_count
-            .fetch_sub(1, Ordering::Release)
-            == 1
-        {
+        if self.data().alloc_ref_count.fetch_sub(1, Ordering::Relaxed) == 1 {
             fence(Ordering::Acquire);
-            let ptr = self.weak.data().data.get();
             unsafe {
-                (*ptr) = None;
+                drop(Box::from_raw(self.ptr.as_ptr()));
             }
         }
     }
