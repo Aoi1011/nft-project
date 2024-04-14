@@ -1,8 +1,10 @@
 mod spin_lock;
 mod channel;
+mod arc;
 
 pub use spin_lock::*;
 pub use channel::*;
+pub use arc::*;
 
 pub fn add(left: usize, right: usize) -> usize {
     left + right
