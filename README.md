@@ -27,3 +27,4 @@ In the context of multi-threading, an operation is atomic if it cannot, from the
 ## Blog
 - [understanding-memory-ordering](https://www.internalpointers.com/post/understanding-memory-ordering)
 - [interacting-with-assembly-in-rust](https://tinkering.xyz/interacting-with-assembly-in-rust/)
+- [understanding-memory-ordering](https://www.internalpointers.com/post/understanding-memory-ordering)
